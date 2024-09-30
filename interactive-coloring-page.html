@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивно оцветяване</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        button, label.file-input {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover, label.file-input:hover {
+            background-color: #45a049;
+        }
+        #colorPicker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            cursor: pointer;
+        }
+        #brushSize {
+            width: 100px;
+        }
+        canvas {
+            border: 1px solid #000;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #imageInput {
+            display: none;
+        }
+        #startPage {
+            text-align: center;
+        }
+        #startButton {
+            font-size: 24px;
+            padding: 15px 30px;
+            margin-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="startPage">
+        <h1>Добре дошли в Интерактивно оцветяване</h1>
+        <p>Натиснете бутона, за да започнете да оцветявате.</p>
+        <button id="startButton">Започни оцветяване</button>
+    </div>
+    <div id="drawingPage" style="display: none;">
+        <div class="controls">
+            <div class="control-group">
+                <label for="colorPicker">Цвят:</label>
+                <input type="color" id="colorPicker">
+            </div>
+            <div class="control-group">
+                <label for="brushSize">Размер на четката:</label>
+                <input type="range" id="brushSize" min="1" max="50" value="5">
+            </div>
+            <button id="eraserBtn">Гума</button>
+            <button id="clearBtn">Изчисти всичко</button>
+            <button id="undoBtn">Отмени</button>
+            <button id="redoBtn">Повтори</button>
+            <label for="imageInput" class="file-input">Зареди друго изображение</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+        <canvas id="drawingCanvas"></canvas>
+    </div>
+
+    <script>
+        const startPage = document.getElementById('startPage');
+        const drawingPage = document.getElementById('drawingPage');
+        const startButton = document.getElementById('startButton');
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const eraserBtn = document.getElementById('eraserBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const imageInput = document.getElementById('imageInput');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let color = colorPicker.value;
+        let size = brushSize.value;
+        let isEraser = false;
+
+        const history = [];
+        let historyIndex = -1;
+
+        const imageLinks = [
+            "https://ucd50be78fee1f51d9bcdc15c8e3.previews.dropboxusercontent.com/p/thumb/ACZluNvfvzLrcclh0ljoiQ1k_l1iiU1EeVEFcMJ0h3GoFVenN0at1fMpd4Ap0Uas2pFIg_74-5HKamRCZoPEVjRF2cOukMvb5ykUyqvusshD9l52D_Pfae58eV4CqTvDFSQglfWSoEIGQWqXb2mST25eIt8I4TEapcLvbbop1okadqcFGpSqi8aqi4FGGmevmN2uG89FrnRNB9G_HspfNjl2mw_4FTrrY2Urdd0-MJ6aEhV4Woif7jj7hhwQMkvQzaz8zhVZtvoEFvUl5c1rBPNUJ9gDn2Gs_E1pr-VLHA9_DI1wbD6cm-biVj74LTGQrP6KMhKRRQEcOhXfVfh7qR1aa4qLpvdceLQCeb26gsK5Xf3w91S_ec3t9CyHAh8AQVc/p.png?is_prewarmed=true",
+            "https://uce42b6428150f126c3c3f6d7cf9.previews.dropboxusercontent.com/p/thumb/ACb2womK8YeJgJSgSgJcslwKmMofmqJmeX4wXgQx0KWm9NdMQklC9K0RGrqRgVX4GokmElshhsYr5sCZBq35bptJT1DcTbnR5Qs7luax9x-ITvtMZ9R-3iuTh8NDyIIIZQgsAJDD3S3bZLaWaKRWantqX1gdhUZQsbsJDWqBnBhOzvRJH1uJenOTJeh-MEWngehHdxF8_6XdrqZQLkQoD70r5nxg9rQSg0DpVTJQhJIPUdZEQq_Bdoe5pZVS2WCK4iadIN7MPmCz3LX3mAOckXoRuJPq6sMklnRRXXfmn4vlsTFcQ3vZAFMTppSSf_IvcjhSLxDQ4QuW5VvBoBLOTsnkORt9j5Mt8uCmQvAOOQL-azPY8Zdky9tY001At4nvgR8wErb6v8jF0xnm6Cp0w9JF/p.png?is_prewarmed=true"
+        ];
+
+        function getImageIndexFromQR() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return parseInt(urlParams.get('image')) || 0;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth - 40;
+            canvas.height = window.innerHeight - 100;
+            redrawCanvas();
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const [x, y] = getCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = isEraser ? '#FFFFFF' : color;
+            ctx.lineWidth = size;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            [lastX, lastY] = [x, y];
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                saveState();
+            }
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            return [
+                e.clientX - rect.left,
+                e.clientY - rect.top
+            ];
+        }
+
+        function saveState() {
+            historyIndex++;
+            history.splice(historyIndex);
+            history.push(canvas.toDataURL());
+        }
+
+        function redrawCanvas() {
+            if (historyIndex >= 0) {
+                const img = new Image();
+                img.src = history[historyIndex];
+                img.onload = () => ctx.drawImage(img, 0, 0);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function loadImage(src, isInitial = false) {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";  // This line is important for loading images from other domains
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const x = (canvas.width / 2) - (img.width / 2) * scale;
+                const y = (canvas.height / 2) - (img.height / 2) * scale;
+                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                if (isInitial) {
+                    saveState();
+                } else {
+                    saveState();
+                }
+            }
+            img.onerror = function() {
+                console.error("Error loading image");
+                alert("Изображението не можа да бъде заредено. Моля, опитайте с друго изображение.");
+            }
+            img.src = src;
+        }
+
+        startButton.addEventListener('click', () => {
+            const imageIndex = getImageIndexFromQR();
+            const url = imageLinks[imageIndex];
+            startPage.style.display = 'none';
+            drawingPage.style.display = 'block';
+            resizeCanvas();
+            loadImage(url);
+        });
+
+        colorPicker.addEventListener('change', () => {
+            color = colorPicker.value;
+            isEraser = false;
+        });
+
+        brushSize.addEventListener('input', () => size = brushSize.value);
+
+        eraserBtn.addEventListener('click', () => {
+            isEraser = !isEraser;
+            eraserBtn.textContent = isEraser ? 'Четка' : 'Гума';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            saveState();
+        });
+
+        undoBtn.addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                redrawCanvas();
+            }
+        });
+
+        redoBtn.addEventListener('click', () => {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                redrawCanvas();
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    loadImage(event.target.result);
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDrawing(e.touches[0]);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e.touches[0]);
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>
