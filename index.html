@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/c472474e4a.js" crossorigin="anonymous"></script>
     <title>Интерактивно оцветяване</title>
     <style>
         body {
@@ -64,6 +65,25 @@
             padding: 15px 30px;
             margin-top: 20px;
         }
+
+        .color-picker-wrapper {
+            display: inline-block;
+            position: relative;
+        }
+
+        #colorPicker {
+            cursor: pointer;
+        }
+
+        #colorInput {
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
@@ -80,19 +100,31 @@
     <div id="drawingPage" style="display: none;">
         <div class="controls">
             <div class="control-group">
-                <label for="colorPicker">Цвят:</label>
-                <input type="color" id="colorPicker">
+                <!-- <label for="colorPicker">Цвят:</label>
+                <input type="color" id="colorPicker"> -->
+                <!-- <i id="colorPicker" class="fa-solid fa-palette fa-4x"></i>
+                <input type="color" id="colorInput"> -->
+                <div class="color-picker-wrapper">
+                    <!-- Иконата за палитра -->
+                    <i id="colorPicker" class="fa-solid fa-palette fa-4x"></i>
+                    <!-- Скрит input елемент за избиране на цвят -->
+                    <input type="color" id="colorInput">
+                </div>
             </div>
             <div class="control-group">
                 <label for="brushSize">Размер на четката:</label>
                 <input type="range" id="brushSize" min="1" max="50" value="5">
             </div>
-            <button id="eraserBtn">Гума</button>
-            <button id="clearBtn">Изчисти всичко</button>
-            <button id="undoBtn">Отмени</button>
-            <button id="redoBtn">Повтори</button>
-            <label for="imageInput" class="file-input">Зареди друго изображение</label>
-            <input type="file" id="imageInput" accept="image/*">
+            <i id="penBtn" class="fa-solid fa-pen fa-4x"></i>
+            <i id="eraserBtn" class="fa-solid fa-eraser fa-4x"></i>
+            <!-- <button id="eraserBtn">Гума</button> -->
+            <!-- <button id="clearBtn">Изчисти всичко</button> -->
+            <!-- <button id="undoBtn">Отмени</button> -->
+            <i id="undoBtn" class="fa-solid fa-left-long fa-4x"></i>
+            <!-- <button id="redoBtn" id="redoBtn">Повтори</button> -->
+            <i id="redoBtn" class="fa-solid fa-right-long fa-4x"></i>
+            <!-- <label for="imageInput" class="file-input">Зареди друго изображение</label>
+            <input type="file" id="imageInput" accept="image/*"> -->
         </div>
         <canvas id="drawingCanvas"></canvas>
     </div>
@@ -103,13 +135,14 @@
         const startButton = document.getElementById('startButton');
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
-        const colorPicker = document.getElementById('colorPicker');
+        const colorPicker = document.getElementById('colorInput');
         const brushSize = document.getElementById('brushSize');
+        const penBtn = document.getElementById('penBtn');
         const eraserBtn = document.getElementById('eraserBtn');
-        const clearBtn = document.getElementById('clearBtn');
+        // const clearBtn = document.getElementById('clearBtn');
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
-        const imageInput = document.getElementById('imageInput');
+        // const imageInput = document.getElementById('imageInput');
 
         let isDrawing = false;
         let lastX = 0;
@@ -249,15 +282,18 @@
 
         brushSize.addEventListener('input', () => size = brushSize.value);
 
+        penBtn.addEventListener('click', () => isEraser = false);
+
         eraserBtn.addEventListener('click', () => {
-            isEraser = !isEraser;
-            eraserBtn.textContent = isEraser ? 'Четка' : 'Гума';
+            //isEraser = !isEraser;
+            //eraserBtn.textContent = isEraser ? 'Четка' : 'Гума';
+            isEraser = true;
         });
 
-        clearBtn.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            saveState();
-        });
+        // clearBtn.addEventListener('click', () => {
+        //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //     saveState();
+        // });
 
         undoBtn.addEventListener('click', () => {
             if (historyIndex > 0) {
@@ -273,15 +309,15 @@
             }
         });
 
-        imageInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    loadImage(event.target.result);
-                }
-                reader.readAsDataURL(e.target.files[0]);
-            }
-        });
+        // imageInput.addEventListener('change', (e) => {
+        //     if (e.target.files && e.target.files[0]) {
+        //         const reader = new FileReader();
+        //         reader.onload = function(event) {
+        //             loadImage(event.target.result);
+        //         }
+        //         reader.readAsDataURL(e.target.files[0]);
+        //     }
+        // });
 
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
