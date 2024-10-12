@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="bg">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+    <meta name="referrer" content="no-referrer">
     <script src="https://kit.fontawesome.com/c472474e4a.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <title>Интерактивно оцветяване</title>
     <style>
         body {
@@ -15,6 +18,7 @@
             align-items: center;
             background-color: #f0f0f0;
         }
+
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -22,12 +26,15 @@
             gap: 10px;
             margin-bottom: 20px;
         }
+
         .control-group {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        button, label.file-input {
+
+        button,
+        label.file-input {
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
@@ -37,29 +44,37 @@
             border-radius: 5px;
             transition: background-color 0.3s;
         }
-        button:hover, label.file-input:hover {
+
+        button:hover,
+        label.file-input:hover {
             background-color: #45a049;
         }
+
         #colorPicker {
             width: 50px;
             height: 50px;
             border: none;
             cursor: pointer;
         }
+
         #brushSize {
             width: 100px;
         }
+
         canvas {
             border: 1px solid #000;
             background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+
         #imageInput {
             display: none;
         }
+
         #startPage {
             text-align: center;
         }
+
         #startButton {
             font-size: 24px;
             padding: 15px 30px;
@@ -84,6 +99,25 @@
             height: 100%;
             cursor: pointer;
         }
+
+        .slider-wrapper {
+            left: 20px;
+            display: inline-block;
+            position: relative;
+        }
+
+        #brushSize {
+            cursor: pointer;
+        }
+
+        #brushSlider {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 150px;
+        }
+
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
@@ -91,40 +125,35 @@
         }
     </style>
 </head>
+
 <body>
     <div id="startPage">
-        <h1>Добре дошли в Интерактивно оцветяване</h1>
-        <p>Натиснете бутона, за да започнете да оцветявате.</p>
-        <button id="startButton">Започни оцветяване</button>
+        <h1>Welcome to Interactive Coloring</h1>
+        <p>Press the button to start coloring.</p>
+        <button id="startButton">Start coloring</button>
     </div>
     <div id="drawingPage" style="display: none;">
         <div class="controls">
             <div class="control-group">
-                <!-- <label for="colorPicker">Цвят:</label>
-                <input type="color" id="colorPicker"> -->
-                <!-- <i id="colorPicker" class="fa-solid fa-palette fa-4x"></i>
-                <input type="color" id="colorInput"> -->
                 <div class="color-picker-wrapper">
-                    <!-- Иконата за палитра -->
                     <i id="colorPicker" class="fa-solid fa-palette fa-4x"></i>
-                    <!-- Скрит input елемент за избиране на цвят -->
                     <input type="color" id="colorInput">
                 </div>
             </div>
             <div class="control-group">
-                <label for="brushSize">Размер на четката:</label>
-                <input type="range" id="brushSize" min="1" max="50" value="5">
+                <div class="slider-wrapper">
+                    <i id="brushSize" class="fa-solid fa-sliders fa-4x"></i>
+                    <input type="range" id="brushSlider" min="1" max="50" value="5">
+                </div>
             </div>
             <i id="penBtn" class="fa-solid fa-pen fa-4x"></i>
             <i id="eraserBtn" class="fa-solid fa-eraser fa-4x"></i>
-            <!-- <button id="eraserBtn">Гума</button> -->
-            <!-- <button id="clearBtn">Изчисти всичко</button> -->
-            <!-- <button id="undoBtn">Отмени</button> -->
             <i id="undoBtn" class="fa-solid fa-left-long fa-4x"></i>
-            <!-- <button id="redoBtn" id="redoBtn">Повтори</button> -->
             <i id="redoBtn" class="fa-solid fa-right-long fa-4x"></i>
             <!-- <label for="imageInput" class="file-input">Зареди друго изображение</label>
             <input type="file" id="imageInput" accept="image/*"> -->
+            <i id="zoom-in" class="fa-solid fa-magnifying-glass-plus fa-4x"></i>
+            <i id="zoom-out" class="fa-solid fa-magnifying-glass-minus fa-4x"></i>
         </div>
         <canvas id="drawingCanvas"></canvas>
     </div>
@@ -136,13 +165,16 @@
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorInput');
-        const brushSize = document.getElementById('brushSize');
+        const brushSize = document.getElementById('brushSlider');
         const penBtn = document.getElementById('penBtn');
         const eraserBtn = document.getElementById('eraserBtn');
         // const clearBtn = document.getElementById('clearBtn');
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
         // const imageInput = document.getElementById('imageInput');
+        const zoomInButton = document.getElementById('zoom-in');
+        const zoomOutButton = document.getElementById('zoom-out');
+        const secretKey = "redfox";
 
         let isDrawing = false;
         let lastX = 0;
@@ -150,43 +182,94 @@
         let color = colorPicker.value;
         let size = brushSize.value;
         let isEraser = false;
+        let scale = 1;
 
         const history = [];
         let historyIndex = -1;
 
-        const imageLinks = [
-            //"https://live.staticflickr.com/65535/54034074612_097538242d_z.jpg",
-            //"https://live.staticflickr.com/65535/54035435415_3ce79c2f70_z.jpg",
-            //"https://live.staticflickr.com/65535/54036302956_c752acae40_z.jpg",
-            //"https://live.staticflickr.com/65535/54035437202_0d6f7f7dc1_z.jpg",
-            "https://live.staticflickr.com/65535/54043739667_03359f4eed_o.png", // Guardians of the Forgotten Citadel - The Beginning of the Guardians
-            "https://live.staticflickr.com/65535/54043740037_3be89e1c89_o.png", // Guardians of the Forgotten Citadel - Choosing the Weapon
-            "https://live.staticflickr.com/65535/54044860838_6af63ce89e_o.png", // Guardians of the Forgotten Citadel - The Knight of the Wind
-            "https://live.staticflickr.com/65535/54044931539_da94bb7656_o.png", // Guardians of the Forgotten Citadel - The Attack of the Shadows
-            "https://live.staticflickr.com/65535/54044932134_bdd6a15dc7_o.png", // Guardians of the Forgotten Citadel - The Knight of the Abyss
-            "https://live.staticflickr.com/65535/54044610716_03562fa950_o.png", // Guardians of the Forgotten Citadel - The Eye of the Citadel
-            "https://live.staticflickr.com/65535/54044932874_429814718b_o.png", // Guardians of the Forgotten Citadel - The Knight of the Flame
-            "https://live.staticflickr.com/65535/54044933189_fc4d2a49ca_o.png", // Guardians of the Forgotten Citadel - The Plot of Darkness
-            "https://live.staticflickr.com/65535/54043743147_cf14b4a697_o.png", // Guardians of the Forgotten Citadel - The Knight of the Earth
-            "https://live.staticflickr.com/65535/54043743692_5f3345ca7f_o.png", // Guardians of the Forgotten Citadel - The Knight of the Mist
-            "https://live.staticflickr.com/65535/54045058690_95066dce3c_o.png", // Guardians of the Forgotten Citadel - The Artifact of Time
-            "https://live.staticflickr.com/65535/54045062310_e7fb6a870f_o.png", // Guardians of the Forgotten Citadel - The Guardian of Time
-            "https://live.staticflickr.com/65535/54045058975_1b511bcd66_o.png", // Guardians of the Forgotten Citadel - The Knight of Lightning
-            "https://live.staticflickr.com/65535/54043744862_2d1d5a11e6_o.png", // Guardians of the Forgotten Citadel - The Knight of Ice
-            "https://live.staticflickr.com/65535/54044614141_b11e39722d_o.png", // Guardians of the Forgotten Citadel - The Knight of the Sun
-            "https://live.staticflickr.com/65535/54045060190_055de8e72a_o.png", // Guardians of the Forgotten Citadel - The Knight of Darknes
-            "https://live.staticflickr.com/65535/54044936469_53fa94393e_o.png", // Guardians of the Forgotten Citadel - The Knight of Storms
-            "https://live.staticflickr.com/65535/54043746307_15bb1895a8_o.png", // Guardians of the Forgotten Citadel - The Knight of Stone
-            "https://live.staticflickr.com/65535/54043746652_9773ee92a5_o.png", // Guardians of the Forgotten Citadel - The Knight of Blood
-            "https://live.staticflickr.com/65535/54045061530_818e74fc93_o.png", // Guardians of the Forgotten Citadel - The Knight of Stars
-            "https://live.staticflickr.com/65535/54045062565_f8156f94d6_o.png", // Guardians of the Forgotten Citadel - The Dark Lords
-            "https://live.staticflickr.com/65535/54044617026_10f4a43b90_o.png", // Guardians of the Forgotten Citadel - The Dark Gathering
-            "https://live.staticflickr.com/65535/54044868868_ab8b79e5b3_o.png" , // Guardians of the Forgotten Citadel - The Final Аssault
-        ];
+        // const imageLinks = [
+        //     //"https://live.staticflickr.com/65535/54034074612_097538242d_z.jpg",
+        //     //"https://live.staticflickr.com/65535/54035435415_3ce79c2f70_z.jpg",
+        //     //"https://live.staticflickr.com/65535/54036302956_c752acae40_z.jpg",
+        //     //"https://live.staticflickr.com/65535/54035437202_0d6f7f7dc1_z.jpg",
+        //     "https://live.staticflickr.com/65535/54043739667_03359f4eed_o.png", // Guardians of the Forgotten Citadel - The Beginning of the Guardians
+        //     "https://live.staticflickr.com/65535/54043740037_3be89e1c89_o.png", // Guardians of the Forgotten Citadel - Choosing the Weapon
+        //     "https://live.staticflickr.com/65535/54044860838_6af63ce89e_o.png", // Guardians of the Forgotten Citadel - The Knight of the Wind
+        //     "https://live.staticflickr.com/65535/54044931539_da94bb7656_o.png", // Guardians of the Forgotten Citadel - The Attack of the Shadows
+        //     "https://live.staticflickr.com/65535/54044932134_bdd6a15dc7_o.png", // Guardians of the Forgotten Citadel - The Knight of the Abyss
+        //     "https://live.staticflickr.com/65535/54044610716_03562fa950_o.png", // Guardians of the Forgotten Citadel - The Eye of the Citadel
+        //     "https://live.staticflickr.com/65535/54044932874_429814718b_o.png", // Guardians of the Forgotten Citadel - The Knight of the Flame
+        //     "https://live.staticflickr.com/65535/54044933189_fc4d2a49ca_o.png", // Guardians of the Forgotten Citadel - The Plot of Darkness
+        //     "https://live.staticflickr.com/65535/54043743147_cf14b4a697_o.png", // Guardians of the Forgotten Citadel - The Knight of the Earth
+        //     "https://live.staticflickr.com/65535/54043743692_5f3345ca7f_o.png", // Guardians of the Forgotten Citadel - The Knight of the Mist
+        //     "https://live.staticflickr.com/65535/54045058690_95066dce3c_o.png", // Guardians of the Forgotten Citadel - The Artifact of Time
+        //     "https://live.staticflickr.com/65535/54045062310_e7fb6a870f_o.png", // Guardians of the Forgotten Citadel - The Guardian of Time
+        //     "https://live.staticflickr.com/65535/54045058975_1b511bcd66_o.png", // Guardians of the Forgotten Citadel - The Knight of Lightning
+        //     "https://live.staticflickr.com/65535/54043744862_2d1d5a11e6_o.png", // Guardians of the Forgotten Citadel - The Knight of Ice
+        //     "https://live.staticflickr.com/65535/54044614141_b11e39722d_o.png", // Guardians of the Forgotten Citadel - The Knight of the Sun
+        //     "https://live.staticflickr.com/65535/54045060190_055de8e72a_o.png", // Guardians of the Forgotten Citadel - The Knight of Darknes
+        //     "https://live.staticflickr.com/65535/54044936469_53fa94393e_o.png", // Guardians of the Forgotten Citadel - The Knight of Storms
+        //     "https://live.staticflickr.com/65535/54043746307_15bb1895a8_o.png", // Guardians of the Forgotten Citadel - The Knight of Stone
+        //     "https://live.staticflickr.com/65535/54043746652_9773ee92a5_o.png", // Guardians of the Forgotten Citadel - The Knight of Blood
+        //     "https://live.staticflickr.com/65535/54045061530_818e74fc93_o.png", // Guardians of the Forgotten Citadel - The Knight of Stars
+        //     "https://live.staticflickr.com/65535/54045062565_f8156f94d6_o.png", // Guardians of the Forgotten Citadel - The Dark Lords
+        //     "https://live.staticflickr.com/65535/54044617026_10f4a43b90_o.png", // Guardians of the Forgotten Citadel - The Dark Gathering
+        //     "https://live.staticflickr.com/65535/54044868868_ab8b79e5b3_o.png", // Guardians of the Forgotten Citadel - The Final Аssault
+        // ];
 
         function getImageIndexFromQR() {
             const urlParams = new URLSearchParams(window.location.search);
-            return parseInt(urlParams.get('image')) || 0;
+            //return parseInt(urlParams.get('image')) || 0;
+            return urlParams.get('image');
+        }
+
+        async function getImageData(imageId) {
+            const url = `https://api.imgur.com/3/image/${imageId}`;
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Client-ID ccf270e9e702ec2`,
+                    },
+                    referrer: "",
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error requesting image');
+                }
+
+                const data = await response.json();
+                return data.data.link;
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function isImgurLink(url) {
+            const flickrPattern = /https:\/\/live\.staticflickr\.com\/.*/;
+            return !flickrPattern.test(url);
+        }
+
+        function extractImageId(url) {
+            const imgurPattern = /https:\/\/i\.imgur\.com\/([a-zA-Z0-9]+)\.(png|jpe?g)/;
+            const match = url.match(imgurPattern);
+            if (match) return match[1];
+
+            return null;
+        }
+
+        function decryptImageId(encryptedId, secretKey) {
+            try {
+                // const bytes = CryptoJS.AES.decrypt(encryptedId, secretKey);
+                // const decryptedId = bytes.toString(CryptoJS.enc.Utf8);
+                // return decryptedId.length ? parseInt(decryptedId, 10) : null;
+                const decrypted = CryptoJS.AES.decrypt(encryptedId, secretKey).toString(CryptoJS.enc.Utf8);
+                const [galleryIndex, imageIndex] = decrypted.split(':').map(Number);
+                return { galleryIndex, imageIndex };
+            } catch (e) {
+                console.error("Error during decryption", e);
+                return null;
+            }
         }
 
         function resizeCanvas() {
@@ -196,6 +279,8 @@
         }
 
         function startDrawing(e) {
+            brushSlider.style.display = 'none';
+            console.log('stop');
             isDrawing = true;
             [lastX, lastY] = getCoordinates(e);
         }
@@ -244,49 +329,80 @@
             }
         }
 
-        function loadImage(src, isInitial = false) {
+        async function loadImage(src) {
             const img = new Image();
-            img.crossOrigin = "Anonymous";  // This line is important for loading images from other domains
-            img.onload = function() {
+            img.crossOrigin = "Anonymous";  // This line is important for loading images from other domains         
+            img.onload = function () {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
                 const x = (canvas.width / 2) - (img.width / 2) * scale;
                 const y = (canvas.height / 2) - (img.height / 2) * scale;
                 ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                if (isInitial) {
-                    saveState();
-                } else {
-                    saveState();
-                }
+                saveState();
             }
-            img.onerror = function() {
+            img.onerror = function () {
                 console.error("Error loading image");
-                alert("Изображението не можа да бъде заредено. Моля, опитайте с друго изображение.");
+                alert("The image could not be loaded. Please try another image.");
             }
-            img.src = src;
+            img.src = isImgurLink(src) ? await getImageData(extractImageId(src)) : src;
         }
 
-        startButton.addEventListener('click', () => {
-            const imageIndex = getImageIndexFromQR();
-            const url = imageLinks[imageIndex];
+        startButton.addEventListener('click', async () => {
+            const encryptedIds = getImageIndexFromQR();
+            const { galleryIndex, imageIndex } = decryptImageId(encryptedIds, secretKey);
+            //const url = imageLinks[imageIndex];
+            const gallery = await loadGallery(galleryIndex);
             startPage.style.display = 'none';
             drawingPage.style.display = 'block';
             resizeCanvas();
-            loadImage(url);
+            //loadImage(url);
+            loadImage(gallery[imageIndex]);
         });
 
+        async function loadGallery(galleryIndex) {
+            try {
+                const response = await fetch('galleries.json');
+                const data = await response.json();
+                //const encryptedId = getGalleryIdFromRequest();
+                if(galleryIndex !== null) {
+                    if (galleryIndex !== null && data[galleryIndex]) {             
+                        //displayGallery(data[galleryId]);
+                        return data[galleryIndex].slice(1);
+                    } else {
+                        console.error("Invalid gallery ID");
+                    }
+                } else {
+                    console.error("No gallery parameter found in URL");
+                }     
+            } catch (error) {
+                console.error('Error loading galleries:', error);
+            }
+        }
+
         colorPicker.addEventListener('change', () => {
+            brushSize.style.display = 'none';
             color = colorPicker.value;
             isEraser = false;
         });
 
-        brushSize.addEventListener('input', () => size = brushSize.value);
+        //brushSize.addEventListener('input', () => size = brushSize.value);
+
+        document.getElementById('brushSize').addEventListener('click', function () {
+            if (brushSize.style.display === 'none' || brushSize.style.display === '') {
+                brushSize.style.display = 'block';
+            } else {
+                brushSize.style.display = 'none';
+            }
+        });
+
+        brushSize.addEventListener('input', function () {
+            size = this.value;
+        });
 
         penBtn.addEventListener('click', () => isEraser = false);
 
         eraserBtn.addEventListener('click', () => {
-            //isEraser = !isEraser;
-            //eraserBtn.textContent = isEraser ? 'Четка' : 'Гума';
+            brushSize.style.display = 'none';
             isEraser = true;
         });
 
@@ -296,6 +412,7 @@
         // });
 
         undoBtn.addEventListener('click', () => {
+            brushSize.style.display = 'none';
             if (historyIndex > 0) {
                 historyIndex--;
                 redrawCanvas();
@@ -303,10 +420,16 @@
         });
 
         redoBtn.addEventListener('click', () => {
+            brushSize.style.display = 'none';
             if (historyIndex < history.length - 1) {
                 historyIndex++;
                 redrawCanvas();
             }
+        });
+
+        zoomInButton.addEventListener('click', () => {
+            scale += 0.1;
+            canvas.style.transform = `scale(${scale})`;
         });
 
         // imageInput.addEventListener('change', (e) => {
@@ -337,4 +460,5 @@
         window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
+
 </html>
