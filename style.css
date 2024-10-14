@@ -1,0 +1,211 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    /* flex-direction: column; */
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+button,
+label.file-input {
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+button:hover,
+label.file-input:hover {
+    background-color: #45a049;
+}
+
+#colorPicker {
+    width: 50px;
+    height: 50px;
+    border: none;
+    cursor: pointer;
+}
+
+#brushSize {
+    width: 100px;
+}
+
+canvas {
+    border: 1px solid #000;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#imageInput {
+    display: none;
+}
+
+#startPage {
+    text-align: center;
+}
+
+#startButton {
+    font-size: 24px;
+    padding: 15px 30px;
+    margin-top: 20px;
+}
+
+.color-picker-wrapper {
+    display: inline-block;
+    position: relative;
+}
+
+#colorPicker {
+    cursor: pointer;
+}
+
+#colorInput {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.slider-wrapper {
+    left: 20px;
+    display: inline-block;
+    position: relative;
+}
+
+.slider-wrapper2 {
+    /* left: 20px; */
+    display: inline-block;
+    position: relative;
+}
+
+#brushSize {
+    cursor: pointer;
+}
+
+#brushSlider {
+    display: none;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    width: 150px;
+}
+
+
+
+#drawingCanvas {
+    /* text-align: center; */
+    position: relative;
+    /* margin: 20px auto; */
+    /* margin-left: 30px; */
+    margin-left: 14%;
+}
+
+.fa-solid.fa-palette.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-palette.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-stroopwafel.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-stroopwafel.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-sliders.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-sliders.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-pen.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-pen.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-eraser.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-eraser.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-left-long.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-left-long.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-right-long.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-right-long.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-magnifying-glass-plus.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-magnifying-glass-plus.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-magnifying-glass-mimus.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-magnifying-glass-minus.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+.fa-solid.fa-file-arrow-down.fa-4x {
+    color: hsl(0, 0%, 0%);
+}
+
+.fa-solid.fa-file-arrow-down.fa-4x:hover {
+    color: hsl(0, 0%, 40%);
+}
+
+@media (max-width: 600px) {
+    .controls {
+        flex-direction: column;
+    }
+}

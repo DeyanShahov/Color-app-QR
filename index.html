@@ -9,7 +9,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <title>Interactive coloring</title>
-    <style></style>
+    <style>
+        #opacityValue {
+            cursor: pointer;
+            margin-right: 10%;
+        }
+
+        #opacitySlider {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 150px;
+        }
+    </style>
 </head>
 
 <body>
@@ -30,6 +43,12 @@
                 <div class="slider-wrapper">
                     <i id="brushSize" class="fa-solid fa-sliders fa-4x"></i>
                     <input type="range" id="brushSlider" min="1" max="50" value="5">
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="slider-wrapper2">
+                    <i id="opacityValue" class="fa-solid fa-stroopwafel fa-4x"></i>
+                    <input type="range" id="opacitySlider" min="1" max="100" value="100">
                 </div>
             </div>
             <i id="penBtn" class="fa-solid fa-pen fa-4x"></i>
@@ -53,6 +72,7 @@
         const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorInput');
         const brushSize = document.getElementById('brushSlider');
+        const opacityValue = document.getElementById('opacitySlider');
         const penBtn = document.getElementById('penBtn');
         const eraserBtn = document.getElementById('eraserBtn');
         // const clearBtn = document.getElementById('clearBtn');
@@ -71,6 +91,8 @@
         let size = brushSize.value;
         let isEraser = false;
         let scale = 1;
+        let opacity = opacityValue.value / 100;
+        let hexColor = '#000000';
 
         const history = [];
         let historyIndex = -1;
@@ -79,6 +101,21 @@
             const urlParams = new URLSearchParams(window.location.search);
             //return parseInt(urlParams.get('image')) || 0;
             return urlParams.get('image');
+        }
+
+        function hexToRgba(hex, opacity) {
+            hex = hex.replace('#', '');
+
+            if (hex.length === 3) {
+                hex = hex.split('').map(hexChar => hexChar + hexChar).join('');
+            }
+
+            const bigint = parseInt(hex, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
         }
 
         async function getImageData(imageId) {
@@ -140,8 +177,7 @@
         }
 
         function startDrawing(e) {
-            brushSlider.style.display = 'none';
-            console.log('stop');
+            closeAllSliders();
             isDrawing = true;
             [lastX, lastY] = getCoordinates(e);
         }
@@ -152,7 +188,7 @@
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
             ctx.lineTo(x, y);
-            ctx.strokeStyle = isEraser ? '#FFFFFF' : color;
+            ctx.strokeStyle = isEraser ? '#FFFFFF' : hexToRgba(color, opacity);
             ctx.lineWidth = size;
             ctx.lineCap = 'round';
             ctx.stroke();
@@ -245,15 +281,20 @@
             }
         }
 
+        colorPicker.addEventListener('click', () => closeAllSliders());
+
         colorPicker.addEventListener('change', () => {
-            brushSize.style.display = 'none';
             color = colorPicker.value;
             isEraser = false;
         });
 
-        //brushSize.addEventListener('input', () => size = brushSize.value);
+        opacityValue.addEventListener('input', function () {
+            opacity = this.value / 100;
+            isEraser = false;
+        });
 
         document.getElementById('brushSize').addEventListener('click', function () {
+            opacityValue.style.display = 'none';
             if (brushSize.style.display === 'none' || brushSize.style.display === '') {
                 brushSize.style.display = 'block';
             } else {
@@ -261,16 +302,33 @@
             }
         });
 
+        document.getElementById('opacityValue').addEventListener('click', function () {
+            brushSize.style.display = 'none';
+            if (opacityValue.style.display === 'none' || opacityValue.style.display === '') {
+                opacityValue.style.display = 'block';
+            } else {
+                opacityValue.style.display = 'none';
+            }
+        });
+
         brushSize.addEventListener('input', function () {
             size = this.value;
         });
 
-        penBtn.addEventListener('click', () => isEraser = false);
+        penBtn.addEventListener('click', () => {
+            closeAllSliders();
+            isEraser = false;
+        });
 
         eraserBtn.addEventListener('click', () => {
-            brushSize.style.display = 'none';
+            closeAllSliders();
             isEraser = true;
         });
+
+        function closeAllSliders() {
+            brushSize.style.display = 'none';
+            opacityValue.style.display = 'none';
+        };
 
         // clearBtn.addEventListener('click', () => {
         //     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -278,7 +336,7 @@
         // });
 
         undoBtn.addEventListener('click', () => {
-            brushSize.style.display = 'none';
+            closeAllSliders();
             if (historyIndex > 0) {
                 historyIndex--;
                 redrawCanvas();
@@ -286,7 +344,7 @@
         });
 
         redoBtn.addEventListener('click', () => {
-            brushSize.style.display = 'none';
+            closeAllSliders();
             if (historyIndex < history.length - 1) {
                 historyIndex++;
                 redrawCanvas();
@@ -294,16 +352,19 @@
         });
 
         zoomInButton.addEventListener('click', () => {
+            closeAllSliders();
             scale += 0.1;
             canvas.style.transform = `scale(${scale})`;
         });
 
         zoomOutButton.addEventListener('click', () => {
+            closeAllSliders();
             scale -= 0.1;
             canvas.style.transform = `scale(${scale})`;
         });
 
         downloadButton.addEventListener('click', () => {
+            closeAllSliders();
             downloadImage()
         });
 
