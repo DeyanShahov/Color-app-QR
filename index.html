@@ -7,14 +7,15 @@
     <meta name="referrer" content="no-referrer">
     <script src="https://kit.fontawesome.com/c472474e4a.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <title>Интерактивно оцветяване</title>
+    <title>Interactive coloring</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
             display: flex;
-            flex-direction: column;
+            /* flex-direction: column; */
+            justify-content: center;
             align-items: center;
             background-color: #f0f0f0;
         }
@@ -118,6 +119,14 @@
             width: 150px;
         }
 
+        #drawingCanvas {
+            /* text-align: center; */
+            position: relative;
+            /* margin: 20px auto; */
+            /* margin-left: 30px; */
+            margin-left: 9%;
+        }
+
         @media (max-width: 600px) {
             .controls {
                 flex-direction: column;
@@ -154,6 +163,7 @@
             <input type="file" id="imageInput" accept="image/*"> -->
             <i id="zoom-in" class="fa-solid fa-magnifying-glass-plus fa-4x"></i>
             <i id="zoom-out" class="fa-solid fa-magnifying-glass-minus fa-4x"></i>
+            <i id="file-download" class="fa-solid fa-file-arrow-down fa-4x"></i>
         </div>
         <canvas id="drawingCanvas"></canvas>
     </div>
@@ -174,6 +184,7 @@
         // const imageInput = document.getElementById('imageInput');
         const zoomInButton = document.getElementById('zoom-in');
         const zoomOutButton = document.getElementById('zoom-out');
+        const downloadButton = document.getElementById('file-download');
         const secretKey = "redfox";
 
         let isDrawing = false;
@@ -230,9 +241,6 @@
 
         function decryptImageId(encryptedId, secretKey) {
             try {
-                // const bytes = CryptoJS.AES.decrypt(encryptedId, secretKey);
-                // const decryptedId = bytes.toString(CryptoJS.enc.Utf8);
-                // return decryptedId.length ? parseInt(decryptedId, 10) : null;
                 const decrypted = CryptoJS.AES.decrypt(encryptedId, secretKey).toString(CryptoJS.enc.Utf8);
                 const [galleryIndex, imageIndex] = decrypted.split(':').map(Number);
                 return { galleryIndex, imageIndex };
@@ -242,9 +250,15 @@
             }
         }
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth - 40;
-            canvas.height = window.innerHeight - 100;
+        function resizeCanvas(width, height) {
+            const maxWidth = window.innerWidth * 0.9;
+            const maxHeight = window.innerHeight * 0.85;
+
+            const scale = Math.min(maxWidth / width, maxHeight / height);
+
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+
             redrawCanvas();
         }
 
@@ -299,10 +313,19 @@
             }
         }
 
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'my_colored_image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        };
+
+
         async function loadImage(src) {
             const img = new Image();
             img.crossOrigin = "Anonymous";  // This line is important for loading images from other domains         
             img.onload = function () {
+                resizeCanvas(this.width, this.height);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
                 const x = (canvas.width / 2) - (img.width / 2) * scale;
@@ -320,12 +343,10 @@
         startButton.addEventListener('click', async () => {
             const encryptedIds = getImageIndexFromQR();
             const { galleryIndex, imageIndex } = decryptImageId(encryptedIds, secretKey);
-            //const url = imageLinks[imageIndex];
             const gallery = await loadGallery(galleryIndex);
             startPage.style.display = 'none';
             drawingPage.style.display = 'block';
             resizeCanvas();
-            //loadImage(url);
             loadImage(gallery[imageIndex]);
         });
 
@@ -333,17 +354,15 @@
             try {
                 const response = await fetch('galleries.json');
                 const data = await response.json();
-                //const encryptedId = getGalleryIdFromRequest();
-                if(galleryIndex !== null) {
-                    if (galleryIndex !== null && data[galleryIndex]) {             
-                        //displayGallery(data[galleryId]);
+                if (galleryIndex !== null) {
+                    if (galleryIndex !== null && data[galleryIndex]) {
                         return data[galleryIndex].slice(1);
                     } else {
                         console.error("Invalid gallery ID");
                     }
                 } else {
                     console.error("No gallery parameter found in URL");
-                }     
+                }
             } catch (error) {
                 console.error('Error loading galleries:', error);
             }
@@ -400,6 +419,15 @@
         zoomInButton.addEventListener('click', () => {
             scale += 0.1;
             canvas.style.transform = `scale(${scale})`;
+        });
+
+        zoomOutButton.addEventListener('click', () => {
+            scale -= 0.1;
+            canvas.style.transform = `scale(${scale})`;
+        });
+
+        downloadButton.addEventListener('click', () => {
+            downloadImage()
         });
 
         // imageInput.addEventListener('change', (e) => {
